@@ -183,6 +183,22 @@ class VisualizerAgent(BaseAgent):
                     max_attempts=5,
                     retry_delay=30,
                 )
+            elif generation_utils.use_codex_backend() and self.model_name.startswith("codex-image"):
+                aspect_ratio = data.get("additional_info", {}).get("rounded_ratio", "16:9")
+                response_list = await generation_utils.call_codex_image_generation_async(
+                    prompt=prompt_text,
+                    system_prompt=self.system_prompt,
+                    aspect_ratio=aspect_ratio,
+                    output_root=self.exp_config.work_dir / "outputs" / "codex",
+                )
+            elif generation_utils.use_codex_backend() and self.model_name.startswith("codex"):
+                aspect_ratio = data.get("additional_info", {}).get("rounded_ratio", "16:9")
+                response_list = await generation_utils.call_codex_svg_generation_async(
+                    prompt=prompt_text,
+                    system_prompt=self.system_prompt,
+                    aspect_ratio=aspect_ratio,
+                    output_root=self.exp_config.work_dir / "outputs" / "codex",
+                )
             else:
                 raise ValueError(f"Unsupported model: {self.model_name}")
             

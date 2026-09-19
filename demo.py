@@ -77,6 +77,44 @@ st.set_page_config(
     page_icon="🍌"
 )
 
+UI_TEXT = {
+    "en": {
+        "language": "Language / 语言", "title": "🍌 PaperVizAgent Demo", "subtitle": "AI-powered scientific diagram generation and refinement",
+        "generate_tab": "📊 Generate Candidates", "refine_tab": "✨ Refine Image", "generate_heading": "Generate multiple diagram candidates from your method section and caption",
+        "generation_settings": "⚙️ Generation Settings", "pipeline_mode": "Pipeline Mode", "retrieval_setting": "Retrieval Setting", "candidates": "Number of Candidates",
+        "aspect_ratio": "Aspect Ratio", "critic_rounds": "Max Critic Rounds", "model_name": "Model Name", "input": "## 📝 Input",
+        "load_method": "Load Example (Method)", "load_caption": "Load Example (Caption)", "none": "None", "example": "PaperVizAgent Framework",
+        "method": "Method Section Content (Markdown recommended)", "method_placeholder": "Paste the method section content here...",
+        "caption": "Figure Caption (Markdown recommended)", "caption_placeholder": "Enter the figure caption...", "generate": "🚀 Generate Candidates",
+        "missing_input": "Please provide both method content and caption!", "generating": "Generating {count} candidates in parallel... This may take a few minutes.",
+        "generated": "✅ Successfully generated {count} candidates!", "generated_candidates": "## 🎨 Generated Candidates", "final": "Candidate {id} (Final)",
+        "download": "⬇️ Download", "no_image": "No image generated for Candidate {id}", "timeline": "🔄 View Evolution Timeline ({count} stages)",
+        "description": "📝 Description", "refine_heading": "Refine and upscale your diagram to high resolution (2K/4K)", "refinement_settings": "✨ Refinement Settings",
+        "target_resolution": "Target Resolution", "upload": "## 📤 Upload Image", "choose_image": "Choose an image file", "original": "### Original Image",
+        "edit_instructions": "### Edit Instructions", "describe_changes": "Describe the changes you want", "refine": "✨ Refine Image",
+    },
+    "zh": {
+        "language": "语言 / Language", "title": "🍌 PaperVizAgent 演示版", "subtitle": "AI 驱动的科研图生成与迭代优化",
+        "generate_tab": "📊 生成候选图", "refine_tab": "✨ 优化图片", "generate_heading": "根据论文方法部分和图注生成多个候选图",
+        "generation_settings": "⚙️ 生成设置", "pipeline_mode": "流水线模式", "retrieval_setting": "参考图检索", "candidates": "候选图数量",
+        "aspect_ratio": "画面比例", "critic_rounds": "最多批评轮数", "model_name": "模型名称", "input": "## 📝 输入内容",
+        "load_method": "加载示例（方法部分）", "load_caption": "加载示例（图注）", "none": "无", "example": "PaperVizAgent 框架",
+        "method": "方法部分内容（推荐 Markdown）", "method_placeholder": "在这里粘贴论文的方法部分……",
+        "caption": "图片图注（推荐 Markdown）", "caption_placeholder": "在这里输入图注或图片说明……", "generate": "🚀 生成候选图",
+        "missing_input": "请同时填写方法部分和图片图注！", "generating": "正在并行生成 {count} 张候选图，请稍候几分钟……",
+        "generated": "✅ 已成功生成 {count} 张候选图！", "generated_candidates": "## 🎨 已生成的候选图", "final": "候选图 {id}（最终结果）",
+        "download": "⬇️ 下载图片", "no_image": "候选图 {id} 未生成图片", "timeline": "🔄 查看演进过程（共 {count} 个阶段）",
+        "description": "📝 图片描述", "refine_heading": "优化并放大科研图至高分辨率（2K/4K）", "refinement_settings": "✨ 优化设置",
+        "target_resolution": "目标分辨率", "upload": "## 📤 上传图片", "choose_image": "选择图片文件", "original": "### 原始图片",
+        "edit_instructions": "### 修改要求", "describe_changes": "描述你希望修改的内容", "refine": "✨ 优化图片",
+    },
+}
+
+
+def ui(key: str, **kwargs) -> str:
+    language = st.session_state.get("ui_language", "en")
+    return UI_TEXT[language].get(key, UI_TEXT["en"].get(key, key)).format(**kwargs)
+
 def clean_text(text):
     """Clean text by removing invalid UTF-8 surrogate characters."""
     if not text:
@@ -302,13 +340,13 @@ def display_candidate_result(result, candidate_id, exp_mode):
     if final_image_key and final_image_key in result:
         img = base64_to_image(result[final_image_key])
         if img:
-            st.image(img, use_container_width=True, caption=f"Candidate {candidate_id} (Final)")
+            st.image(img, use_container_width=True, caption=ui("final", id=candidate_id))
             
             # Add download button
             buffered = BytesIO()
             img.save(buffered, format="PNG")
             st.download_button(
-                label="⬇️ Download",
+                label=ui("download"),
                 data=buffered.getvalue(),
                 file_name=f"candidate_{candidate_id}.png",
                 mime="image/png",
@@ -318,12 +356,12 @@ def display_candidate_result(result, candidate_id, exp_mode):
         else:
             st.error(f"Failed to decode image for Candidate {candidate_id}")
     else:
-        st.warning(f"No image generated for Candidate {candidate_id}")
+        st.warning(ui("no_image", id=candidate_id))
     
     # Show evolution timeline in an expander
     stages = get_evolution_stages(result, exp_mode)
     if len(stages) > 1:
-        with st.expander(f"🔄 View Evolution Timeline ({len(stages)} stages)", expanded=False):
+        with st.expander(ui("timeline", count=len(stages)), expanded=False):
             st.caption("See how the diagram evolved through different pipeline stages")
             
             for idx, stage in enumerate(stages):
@@ -337,7 +375,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 
                 # Show description
                 if stage['desc_key'] in result:
-                    with st.expander(f"📝 Description", expanded=False):
+                    with st.expander(ui("description"), expanded=False):
                         cleaned_desc = clean_text(result[stage['desc_key']])
                         st.write(cleaned_desc)
                 
@@ -356,7 +394,7 @@ def display_candidate_result(result, candidate_id, exp_mode):
                     st.divider()
     else:
         # If only one stage, show description in simpler expander
-        with st.expander(f"📝 View Description", expanded=False):
+        with st.expander(ui("description"), expanded=False):
             if final_desc_key and final_desc_key in result:
                 # Clean the text to remove invalid UTF-8 characters
                 cleaned_desc = clean_text(result[final_desc_key])
@@ -365,22 +403,28 @@ def display_candidate_result(result, candidate_id, exp_mode):
                 st.info("No description available")
 
 def main():
-    st.title("🍌 PaperVizAgent Demo")
-    st.markdown("AI-powered scientific diagram generation and refinement")
+    st.sidebar.selectbox(
+        "Language / 语言",
+        options=["en", "zh"],
+        format_func=lambda value: "English" if value == "en" else "中文",
+        key="ui_language",
+    )
+    st.title(ui("title"))
+    st.markdown(ui("subtitle"))
     
     # Create tabs
-    tab1, tab2 = st.tabs(["📊 Generate Candidates", "✨ Refine Image"])
+    tab1, tab2 = st.tabs([ui("generate_tab"), ui("refine_tab")])
     
     # ==================== TAB 1: Generate Candidates ====================
     with tab1:
-        st.markdown("### Generate multiple diagram candidates from your method section and caption")
+        st.markdown(f"### {ui('generate_heading')}")
         
         # Sidebar configuration for Tab 1
         with st.sidebar:
-            st.title("⚙️ Generation Settings")
+            st.title(ui("generation_settings"))
             
             exp_mode = st.selectbox(
-                "Pipeline Mode",
+                ui("pipeline_mode"),
                 ["demo_planner_critic", "demo_full"],
                 index=0,
                 key="tab1_exp_mode",
@@ -394,7 +438,7 @@ def main():
             st.info(f"**Pipeline:** {mode_info[exp_mode]}")
             
             retrieval_setting = st.selectbox(
-                "Retrieval Setting",
+                ui("retrieval_setting"),
                 ["auto", "manual", "random", "none"],
                 index=0,
                 key="tab1_retrieval_setting",
@@ -402,7 +446,7 @@ def main():
             )
             
             num_candidates = st.number_input(
-                "Number of Candidates",
+                ui("candidates"),
                 min_value=1,
                 max_value=20,
                 value=10,
@@ -411,14 +455,14 @@ def main():
             )
             
             aspect_ratio = st.selectbox(
-                "Aspect Ratio",
+                ui("aspect_ratio"),
                 ["21:9", "16:9", "3:2"],
                 key="tab1_aspect_ratio",
                 help="Aspect ratio for the generated diagrams"
             )
             
             max_critic_rounds = st.number_input(
-                "Max Critic Rounds",
+                ui("critic_rounds"),
                 min_value=1,
                 max_value=5,
                 value=3,
@@ -430,7 +474,7 @@ def main():
             options = ["", default_model] if default_model else ["", "YOUR_MODEL_NAME_HERE"]
             
             model_name = st.selectbox(
-                "Model Name",
+                ui("model_name"),
                 options,
                 index=0,
                 key="tab1_model_name",
@@ -440,7 +484,7 @@ def main():
         st.divider()
         
         # Input section
-        st.markdown("## 📝 Input")
+        st.markdown(ui("input"))
         
         # Example content
         example_method = r"""## Methodology: The PaperVizAgent Framework
@@ -500,57 +544,59 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
         with col_input1:
             # Example selector for method content
             method_example = st.selectbox(
-                "Load Example (Method)",
-                ["None", "PaperVizAgent Framework"],
-                key="method_example_selector"
+                ui("load_method"),
+                ["none", "example"],
+                format_func=lambda value: ui("none") if value == "none" else ui("example"),
+                key="method_example_selector",
             )
             
             # Set value based on example selection or session state
-            if method_example == "PaperVizAgent Framework":
+            if method_example == "example":
                 method_value = example_method
             else:
                 method_value = st.session_state.get("method_content", "")
             
             method_content = st.text_area(
-                "Method Section Content (Markdown recommended)",
+                ui("method"),
                 value=method_value,
                 height=250,
-                placeholder="Paste the method section content here...",
+                placeholder=ui("method_placeholder"),
                 help="The method section from the paper that describes the approach. Markdown format is recommended."
             )
         
         with col_input2:
             # Example selector for caption
             caption_example = st.selectbox(
-                "Load Example (Caption)",
-                ["None", "PaperVizAgent Framework"],
-                key="caption_example_selector"
+                ui("load_caption"),
+                ["none", "example"],
+                format_func=lambda value: ui("none") if value == "none" else ui("example"),
+                key="caption_example_selector",
             )
             
             # Set value based on example selection or session state
-            if caption_example == "PaperVizAgent Framework":
+            if caption_example == "example":
                 caption_value = example_caption
             else:
                 caption_value = st.session_state.get("caption", "")
             
             caption = st.text_area(
-                "Figure Caption (Markdown recommended)",
+                ui("caption"),
                 value=caption_value,
                 height=250,
-                placeholder="Enter the figure caption...",
+                placeholder=ui("caption_placeholder"),
                 help="The caption or description of the figure to generate. Markdown format is recommended."
             )
         
         # Process button
-        if st.button("🚀 Generate Candidates", type="primary", use_container_width=True):
+        if st.button(ui("generate"), type="primary", use_container_width=True):
             if not method_content or not caption:
-                st.error("Please provide both method content and caption!")
+                st.error(ui("missing_input"))
             else:
                 # Save to session state
                 st.session_state["method_content"] = method_content
                 st.session_state["caption"] = caption
                 
-                with st.spinner(f"Generating {num_candidates} candidates in parallel... This may take a few minutes."):
+                with st.spinner(ui("generating", count=num_candidates)):
                     # Create input data list
                     input_data_list = create_sample_inputs(
                         method_content=method_content,
@@ -590,7 +636,7 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
                                 f.write(json_string)
                             
                             st.session_state["json_file"] = str(json_filename)
-                            st.success(f"✅ Successfully generated {len(results)} candidates!")
+                            st.success(ui("generated", count=len(results)))
                             st.info(f"💾 Results saved to: `{json_filename.name}`")
                         except Exception as e:
                             st.warning(f"⚠️ Generated {len(results)} candidates, but failed to save JSON: {e}")
@@ -606,7 +652,7 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             timestamp = st.session_state.get("timestamp", "N/A")
             
             st.divider()
-            st.markdown("## 🎨 Generated Candidates")
+            st.markdown(ui("generated_candidates"))
             st.caption(f"Generated at: {timestamp} | Pipeline: {mode_info.get(current_mode, current_mode)}")
             
             # Show JSON file download if available
@@ -693,15 +739,15 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
     
     # ==================== TAB 2: Refine Image ====================
     with tab2:
-        st.markdown("### Refine and upscale your diagram to high resolution (2K/4K)")
+        st.markdown(f"### {ui('refine_heading')}")
         st.caption("Upload an image from the candidates or any diagram, describe changes, and generate a high-res version")
         
         # Sidebar for refinement settings
         with st.sidebar:
-            st.title("✨ Refinement Settings")
+            st.title(ui("refinement_settings"))
             
             refine_resolution = st.selectbox(
-                "Target Resolution",
+                ui("target_resolution"),
                 ["2K", "4K"],
                 index=0,
                 key="refine_resolution",
@@ -709,7 +755,7 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             )
             
             refine_aspect_ratio = st.selectbox(
-                "Aspect Ratio",
+                ui("aspect_ratio"),
                 ["21:9", "16:9", "3:2"],
                 index=0,
                 key="refine_aspect_ratio",
@@ -719,9 +765,9 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
         st.divider()
         
         # Upload section
-        st.markdown("## 📤 Upload Image")
+        st.markdown(ui("upload"))
         uploaded_file = st.file_uploader(
-            "Choose an image file",
+            ui("choose_image"),
             type=["png", "jpg", "jpeg"],
             help="Upload the diagram you want to refine"
         )
@@ -732,20 +778,20 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("### Original Image")
+                st.markdown(ui("original"))
                 st.image(uploaded_image, use_container_width=True)
             
             with col2:
-                st.markdown("### Edit Instructions")
+                st.markdown(ui("edit_instructions"))
                 edit_prompt = st.text_area(
-                    "Describe the changes you want",
+                    ui("describe_changes"),
                     height=200,
                     placeholder="E.g., 'Change the color scheme to match academic paper style' or 'Make the text larger and bolder' or 'Keep everything the same but output in higher resolution'",
                     help="Describe what you want to change or use 'Keep everything the same' for just upscaling",
                     key="edit_prompt"
                 )
                 
-                if st.button("✨ Refine Image", type="primary", use_container_width=True):
+                if st.button(ui("refine"), type="primary", use_container_width=True):
                     if not edit_prompt:
                         st.error("Please provide edit instructions!")
                     else:

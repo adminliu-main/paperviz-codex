@@ -19,6 +19,17 @@
 defaults:
   model_name: "" # e.g., "gemini-3-pro-preview"
   image_model_name: "" # e.g., "gemini-3-pro-image-preview"
+  # Set to "codex" to use the locally logged-in Codex CLI for all text agents.
+  # Use image_model_name: "codex-image" for Codex's built-in raster image tool.
+  # "codex-svg" remains available as an editable-vector fallback.
+  backend: "api" # "api" or "codex"
+
+# Local Codex CLI backend (no API key required after `codex login`).
+# Leave model blank to use the user's Codex CLI default model.
+codex:
+  command: "codex"
+  model: ""
+  timeout_seconds: 300
 
 # Google Cloud / Vertex AI settings
 google_cloud:
@@ -27,9 +38,23 @@ google_cloud:
   
 # API Keys (alternatives to Application Default Credentials)
 api_keys:
-  google_api_key: ""
+  google_api_key: "" # Also accepts GEMINI_API_KEY from the environment
   openai_api_key: ""
   anthropic_api_key: ""
+
+# Optional provider-compatible gateway endpoints. Environment variables take
+# precedence: GEMINI_BASE_URL and OPENAI_BASE_URL. Leave both blank to use the
+# official APIs / Vertex AI exactly as before.
+#
+# The Gemini endpoint must implement the Gemini Developer API used by
+# google-genai. The OpenAI endpoint must implement /v1/chat/completions and,
+# for gpt-image-* generation, /v1/images/generations with b64_json responses.
+endpoints:
+  gemini_base_url: "" # e.g. "https://gateway.example.com/v1beta"
+  openai_base_url: "" # e.g. "https://gateway.example.com/v1"
+
+# Set PAPERVIZ_DEBUG_LOG=1 in your shell to record OpenAI image API failures in
+# logs/openai_image_debug.jsonl. Keys and generated image base64 are excluded.
   
 # Anthropic Vertex Settings (if you want to use Anthropic via Vertex)
 anthropic:

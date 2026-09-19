@@ -67,10 +67,16 @@ class PlannerAgent(BaseAgent):
         examples = data.get("retrieved_examples", [])
         if not examples:
             retrieved_ids = data.get("top10_references", [])
-            with open(self.exp_config.work_dir / f"data/PaperBananaBench/{cfg['task_name']}/ref.json", "r", encoding="utf-8") as f:
-                candidate_pool = json.load(f)
-            id_to_item = {item["id"]: item for item in candidate_pool}
-            examples = [id_to_item[ref_id] for ref_id in retrieved_ids if ref_id in id_to_item]
+            ref_path = self.exp_config.work_dir / f"data/PaperBananaBench/{cfg['task_name']}/ref.json"
+            if ref_path.exists():
+                with open(ref_path, "r", encoding="utf-8") as f:
+                    candidate_pool = json.load(f)
+                id_to_item = {item["id"]: item for item in candidate_pool}
+                examples = [id_to_item[ref_id] for ref_id in retrieved_ids if ref_id in id_to_item]
+            elif retrieved_ids:
+                print(f"Warning: Reference file not found at {ref_path}. Ignoring retrieved reference IDs.")
+            else:
+                print("Reference dataset unavailable; continuing Planner Agent without few-shot examples.")
         
         user_prompt = ""
         for idx, item in enumerate(examples):
@@ -138,4 +144,3 @@ To help you understand the task better, and grasp the principles for generating 
 ** IMPORTANT: **
 Your description should be as detailed as possible. For content, explain the precise mapping of variables to visual channels (x, y, hue) and explicitly enumerate every raw data point's coordinate to be drawn to ensure accuracy. For presentation, specify the exact aesthetic parameters, including specific HEX color codes, font sizes for all labels, line widths, marker dimensions, legend placement, and grid styles. You should learn from the examples' content presentation and aesthetic design (e.g., color schemes).
 """
-
