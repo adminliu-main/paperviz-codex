@@ -43,7 +43,7 @@ try:
     from agents.vanilla_agent import VanillaAgent
     from agents.polish_agent import PolishAgent
     print("DEBUG: Imported all agents")
-    from utils import config
+    from utils import config, generation_utils
     from utils.paperviz_processor import PaperVizProcessor
     print("DEBUG: Imported utils")
 
@@ -207,6 +207,15 @@ async def refine_image_with_nanoviz(image_bytes, edit_prompt, aspect_ratio="21:9
     Returns:
         Tuple of (edited_image_bytes, success_message)
     """
+    if generation_utils.use_codex_backend():
+        return await generation_utils.call_codex_image_editing_async(
+            image_bytes=image_bytes,
+            edit_prompt=edit_prompt,
+            aspect_ratio=aspect_ratio,
+            image_size=image_size,
+            output_root=Path(__file__).parent / "outputs" / "codex",
+        )
+
     try:
         from google import genai
         from google.genai import types
@@ -740,7 +749,10 @@ The framework extends to statistical plots by adjusting the Visualizer and Criti
     # ==================== TAB 2: Refine Image ====================
     with tab2:
         st.markdown(f"### {ui('refine_heading')}")
-        st.caption("Upload an image from the candidates or any diagram, describe changes, and generate a high-res version")
+        if generation_utils.use_codex_backend():
+            st.caption("Codex CLI will use the uploaded image as a reference. Requested 2K/4K resolution may vary with Codex's image tool.")
+        else:
+            st.caption("Upload an image from the candidates or any diagram, describe changes, and generate a high-res version")
         
         # Sidebar for refinement settings
         with st.sidebar:

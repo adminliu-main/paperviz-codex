@@ -276,6 +276,54 @@ Detailed description to render:
         print(f"Could not read Codex generated image: {e}")
         return ["Error"]
 
+
+async def call_codex_image_editing_async(
+    image_bytes: bytes,
+    edit_prompt: str,
+    aspect_ratio: str,
+    image_size: str,
+    output_root: Path,
+) -> tuple[bytes | None, str]:
+    """Use Codex image generation with the uploaded image as a reference."""
+    output_dir = output_root / "refine" / uuid.uuid4().hex
+    output_dir.mkdir(parents=True, exist_ok=True)
+    image_path = output_dir / "refined.png"
+    codex_prompt = f"""You are editing an existing scientific diagram for a research paper.
+Use the attached image as the source image. Preserve all content and layout that the
+instructions do not ask you to change. Apply the requested edits to the image itself;
+do not merely describe the edits or create a new unrelated diagram.
+Use Codex's built-in image_generation tool. Do not call an external API or ask for an API key.
+
+Requested edits:
+{edit_prompt}
+
+Output requirements:
+- Keep the scientific meaning and all unmentioned labels and relationships unchanged.
+- Use a {aspect_ratio} aspect ratio and a white background unless the edit instructions say otherwise.
+- Target image size: {image_size}. The image tool may choose its supported native resolution.
+- Save the resulting image as a PNG at this exact path: {image_path}
+- Verify that the file exists and is non-empty. Do not modify any other project file.
+- Your final response must be exactly: DONE
+"""
+    output, stderr, return_code = await _run_codex_exec(
+        codex_prompt,
+        image_attachments=[(image_bytes, "image/jpeg")],
+        writable_dir=output_dir,
+    )
+    if return_code != 0 or not image_path.exists() or image_path.stat().st_size == 0:
+        details = stderr[-1000:] if stderr else output[-1000:]
+        message = f"Codex image editing failed (exit {return_code}): {details}"
+        print(message)
+        return None, message
+
+    try:
+        return image_path.read_bytes(), f"Codex refined the image (requested {image_size}; native output resolution may vary)."
+    except OSError as e:
+        message = f"Could not read Codex refined image: {e}"
+        print(message)
+        return None, message
+
+
 # Endpoint configuration is intentionally separate from credentials: a proxy can
 # use the same provider key while routing requests to its own gateway.
 gemini_base_url = get_config_val("endpoints", "gemini_base_url", "GEMINI_BASE_URL", "")
